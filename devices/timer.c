@@ -130,8 +130,25 @@ timer_print_stats (void) {
 static void timer_interrupt(struct intr_frame *args UNUSED)
 {
 	ticks++;
+	/* alarm clock */
 	thread_tick();
+
+	/* mlfqs */
+	if (thread_mlfqs)
+	{
+        mlfqs_increment();
+
+        if (timer_ticks() % 4 == 0)
+            mlfqs_recalc_priority();
+
+        if (timer_ticks() % 100 == 0) 
+		{
+            mlfqs_load_avg();
+            mlfqs_recalc_recent_cpu();
+        }
+    }
 	
+	/* alarm clock */
 	if (MIN_alarm_time <= ticks)
 		thread_awake(ticks);
 }

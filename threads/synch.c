@@ -44,8 +44,8 @@
 
    - up or "V": increment the value (and wake up one waiting
    thread, if any). */
-void
-sema_init (struct semaphore *sema, unsigned value) {
+void sema_init (struct semaphore *sema, unsigned value) 
+{
 	ASSERT (sema != NULL);
 
 	sema->value = value;
@@ -122,6 +122,7 @@ void sema_up (struct semaphore *sema)
 					struct thread, elem));
 	}
 	sema->value++;
+
 	/* priority */
 	thread_preemption();
 	intr_set_level (old_level);
@@ -206,7 +207,11 @@ void lock_acquire(struct lock *lock)
 		cur_thread->wait_on_lock = lock;
 		list_insert_ordered(&lock->holder->donations, &cur_thread->donations_elem,
 							compare_donation_priority, 0);
-		donate_priority();
+
+		/* mlfqs */
+		if (!thread_mlfqs)
+			/* donation priority */
+			donate_priority();
 	}
 
 	sema_down(&lock->semaphore);
@@ -246,11 +251,16 @@ void lock_release (struct lock *lock)
 	ASSERT (lock != NULL);
 	ASSERT (lock_held_by_current_thread (lock));
 
-	/* donation priority */		
-	remove_with_lock(lock); 
-	refresh_priority();  
-
 	lock->holder = NULL;
+
+	/* mlfqs */
+	if (!thread_mlfqs) 
+	{
+		/* donation priority */		
+		remove_with_lock(lock); 
+		refresh_priority();  
+	}
+
 	sema_up (&lock->semaphore);
 }
 

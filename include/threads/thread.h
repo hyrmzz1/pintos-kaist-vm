@@ -99,11 +99,16 @@ struct thread
 	/* Shared between thread.c and synch.c. */
 	struct list_elem elem;              /* List element. */
 
-	/* donation */         
+	/* donation priority */         
 	int init_priority;  
 	struct lock *wait_on_lock;
 	struct list donations;
 	struct list_elem donations_elem; 
+
+	/* mlfqs */
+	int nice; 
+	int recent_cpu;
+	struct list_elem allelem;
 
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
