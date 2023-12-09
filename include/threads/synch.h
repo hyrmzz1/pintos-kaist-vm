@@ -40,7 +40,7 @@ void cond_broadcast (struct condition *, struct lock *);
 
 // ----------create---------- //
 
-bool compare_semaphore_priority(const struct list_elem *a, const struct list_elem *b, void *aux);
+bool compare_semaphore_priority (const struct list_elem *a, const struct list_elem *b, void *aux);
 
 /* Optimization barrier.
  *
