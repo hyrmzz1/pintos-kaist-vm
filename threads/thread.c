@@ -711,15 +711,15 @@ void donate_priority(void)
 
 void remove_with_lock(struct lock *lock)
 {
-	struct list_elem *curr_donation_elem = list_begin(&thread_current()->donations);
+	struct list_elem *cur_donation_elem = list_begin(&thread_current()->donations);
 
-	while (curr_donation_elem != list_tail(&thread_current()->donations))
+	while (cur_donation_elem != list_tail(&thread_current()->donations))
 	{
-		struct thread *curr_donation_thread = list_entry(curr_donation_elem, struct thread, donations_elem);
+		struct thread *curr_donation_thread = list_entry(cur_donation_elem, struct thread, donations_elem);
 		if (curr_donation_thread->wait_on_lock == lock)
-			curr_donation_elem = list_remove(curr_donation_elem);
+			cur_donation_elem = list_remove(cur_donation_elem);
 		else
-			curr_donation_elem = list_next(curr_donation_elem);
+			cur_donation_elem = list_next(cur_donation_elem);
 	}
 }
 
@@ -731,6 +731,7 @@ void refresh_priority(void)
 
 	if (!list_empty(&cur_thread->donations))
 	{
+		list_sort (&cur_thread->donations, compare_donation_priority, 0);
 		struct thread *front = list_entry(list_front(&cur_thread->donations), struct thread, donations_elem);
 		if (front->priority > cur_thread->priority)
 			cur_thread->priority = front->priority;

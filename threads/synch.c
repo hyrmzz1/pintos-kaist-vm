@@ -28,13 +28,12 @@
 
 #include "threads/synch.h"
 #include "threads/thread.h"
-
 #include <stdio.h>
 #include <string.h>
 #include "threads/interrupt.h"
 
-bool compare_semaphore_priority(const struct list_elem *a, const struct list_elem *b, void *aux);
-bool compare_donation_priority(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
+// bool compare_semaphore_priority(const struct list_elem *a, const struct list_elem *b, void *aux);
+// bool compare_donation_priority(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
 
 /* Initializes semaphore SEMA to VALUE.  A semaphore is a
    nonnegative integer along with two atomic operators for
@@ -59,7 +58,7 @@ sema_init (struct semaphore *sema, unsigned value) {
    This function may sleep, so it must not be called within an
    interrupt handler.  This function may be called with
    interrupts disabled, but if it sleeps then the next scheduled
-   thread will probably turn interrupts back on. This is
+   thread will probably turn interrupts back on. T/his is
    sema_down function. */
 void sema_down (struct semaphore *sema) 
 {
@@ -248,9 +247,10 @@ void lock_release (struct lock *lock)
 	ASSERT (lock_held_by_current_thread (lock));
 
 	/* donation priority */		
-	lock->holder = NULL;
 	remove_with_lock(lock); 
 	refresh_priority();  
+
+	lock->holder = NULL;
 	sema_up (&lock->semaphore);
 }
 
