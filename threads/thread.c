@@ -788,16 +788,16 @@ void remove_with_lock(struct lock *lock)
 /* priority */
 void refresh_priority(void)
 {
-	thread_current()->priority = thread_current()->init_priority;
+	struct thread *cur_thread = thread_current();
 
-	if (!list_empty(&thread_current()->donations))
+	cur_thread->priority = cur_thread->init_priority;
+
+	if (!list_empty(&cur_thread->donations))
 	{
-		struct thread *front_thread = list_entry(list_begin(&thread_current()->donations),
-												 struct thread,
-												 donations_elem);
-
-		if (thread_current()->priority < front_thread->priority)
-			thread_current()->priority = front_thread->priority;
+		// list_sort (&cur_thread->donations, compare_donation_priority, 0);
+		struct thread *front = list_entry(list_front(&cur_thread->donations), struct thread, donations_elem);
+		if (front->priority > cur_thread->priority)
+			cur_thread->priority = front->priority;
 	}
 }
 

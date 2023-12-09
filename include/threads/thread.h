@@ -165,8 +165,19 @@ void thread_sleep(int64_t ticks);
 void thread_awake(int64_t ticks);
 
 bool compare_thread_priority(const struct list_elem *a_, const struct list_elem *b_, void *aux UNUSED);
-bool compare_donation_priority(const struct list_elem *a, const struct list_elem *b, void *aux);
 
 void thread_preemption(void);
 
+/* donation priority */
+void remove_with_lock(struct lock *lock);
+bool compare_donation_priority(const struct list_elem *a, const struct list_elem *b, void *aux);
+void refresh_priority(void);
 void donate_priority(void);
+
+/* mlfqs */
+void mlfqs_priority(struct thread *t);
+void mlfqs_recent_cpu(struct thread *t);
+void mlfqs_load_avg(void);
+void mlfqs_increment(void);
+void mlfqs_recalc_priority(void);
+void mlfqs_recalc_recent_cpu(void);

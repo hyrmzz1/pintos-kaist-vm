@@ -4,7 +4,7 @@ Kernel command line: -q -mlfqs run mlfqs-load-60
 Pintos booting with: 
 	base_mem: 0x0 ~ 0x9fc00 (Usable: 639 kB)
 	ext_mem: 0x100000 ~ 0x13e0000 (Usable: 19,328 kB)
-Calibrating timer...  419,020,800 loops/s.
+Calibrating timer...  405,913,600 loops/s.
 Boot complete.
 Executing 'mlfqs-load-60':
 (mlfqs-load-60) begin
@@ -71,19 +71,19 @@ Executing 'mlfqs-load-60':
 (mlfqs-load-60) After 116 seconds, load average=14.79.
 (mlfqs-load-60) After 118 seconds, load average=14.30.
 (mlfqs-load-60) After 120 seconds, load average=13.83.
-Interrupt 0x0d (#GP General Protection Exception) at rip=80042080a3
+Interrupt 0x0d (#GP General Protection Exception) at rip=800420806a
  cr2=0000000000000000 error=               0
 rax cccccccccccccc4c rbx 0000000000000000 rcx 0000008004234028 rdx 0000000000000000
 rsp 0000008004234e48 rbp 0000008004234e70 rsi 0000000059897333 rdi cccccccccccccc4c
-rip 00000080042080a3 r8 0000000000000000  r9 0000000000000000 r10 0000000000000000
+rip 000000800420806a r8 0000000000000000  r9 0000000000000000 r10 0000000000000000
 r11 0000000000000000 r12 0000000000000000 r13 0000000000000000 r14 0000000000000000
 r15 0000000000000000 rflags 00000082
 es: 0010 ds: 0010 cs: 0008 ss: 0010
 Kernel PANIC at ../../threads/interrupt.c:361 in intr_handler(): Unexpected interrupt
-Call stack: 0x8004214098 0x80042093df 0x8004209791 0x8004208466 0x800420ddb1 0x8004209373 0x8004209791 0x8004207521.
+Call stack: 0x8004214074 0x80042093a6 0x8004209758 0x800420842d 0x800420dd97 0x800420933a 0x8004209758 0x8004207517.
 The `backtrace' program can make call stacks useful.
 Read "Backtraces" in the "Debugging Tools" chapter
 of the Pintos documentation for more information.
 Timer: 13024 ticks
-Thread: 7001 idle ticks, 6023 kernel ticks, 0 user ticks
+Thread: 7000 idle ticks, 6024 kernel ticks, 0 user ticks
 Console: 4
