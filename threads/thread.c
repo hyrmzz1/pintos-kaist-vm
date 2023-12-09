@@ -316,7 +316,7 @@ void thread_exit(void)
 #ifdef USERPROG
 	process_exit();
 #endif
-
+	list_remove(&thread_current()->allelem);
 	/* Just set our status to dying and schedule another process.
 	   We will be destroyed during the call to schedule_tail(). */
 	intr_disable();
