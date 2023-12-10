@@ -385,7 +385,7 @@ int thread_get_load_avg(void)
 	enum intr_level old_level;
 
 	old_level = intr_disable();
-	int new_load_avg = fp_to_int(mult_mixed(load_avg, 100));
+	int new_load_avg = fp_to_int(mult_complex(load_avg, 100));
 	intr_set_level(old_level);
 
 	return new_load_avg;
@@ -396,7 +396,7 @@ int thread_get_recent_cpu(void)
 	enum intr_level old_level;
 
 	old_level = intr_disable();
-	int new_recent_cpu = fp_to_int(mult_mixed(thread_current()->recent_cpu, 100));
+	int new_recent_cpu = fp_to_int(mult_complex(thread_current()->recent_cpu, 100));
 	intr_set_level(old_level);
 
 	return new_recent_cpu;
@@ -783,6 +783,8 @@ void refresh_priority(void)
 
 	if (!list_empty(&thread_current()->donations))
 	{
+		list_sort (&thread_current()->donations, compare_donation_priority, 0);
+
 		struct thread *front_thread = list_entry(list_begin(&thread_current()->donations),
 												 struct thread,
 												 donation_elem);
@@ -792,21 +794,23 @@ void refresh_priority(void)
 	}
 }
 
-
-/* mlfqs */
+/* recent_cpu와 
+값을 이용하여 priority를 계산 */
 void mlfqs_priority(struct thread *t)
 {
     if (t != idle_thread) 
 	{
-        int rec_by_4 = div_mixed(t->recent_cpu, 4);
+        int rec_by_4 = div_complex(t->recent_cpu, 4);
         int nice2 = 2 * t->nice;
-        int to_sub = add_mixed(rec_by_4, nice2);
-        int tmp = sub_mixed(to_sub, (int)PRI_MAX);
-        int pri_result = fp_to_int(sub_fp(0, tmp));
+        int to_sub = add_complex(rec_by_4, nice2);
+        int tmp = sub_complex(to_sub, (int)PRI_MAX);
+        int pri_result = fp_to_int(fp_sub(0, tmp));
+
         if (pri_result < PRI_MIN)
             pri_result = PRI_MIN;
         if (pri_result > PRI_MAX)
             pri_result = PRI_MAX;
+
         t->priority = pri_result;
     }
 }
@@ -816,13 +820,15 @@ void mlfqs_recent_cpu(struct thread *t)
 {
     if (t != idle_thread) 
 	{
-        int load_avg_2 = mult_mixed(load_avg, 2);
-        int load_avg_2_1 = add_mixed(load_avg_2, 1);
-        int frac = div_fp(load_avg_2, load_avg_2_1);
-        int tmp = mult_fp(frac, t->recent_cpu);
-        int result = add_mixed(tmp, t->nice);
-        if ((result >> 31) == (-1) >> 31) 
+        int load_avg_2 = mult_complex(load_avg, 2);
+        int load_avg_2_1 = add_complex(load_avg_2, 1);
+        int frac = fp_div(load_avg_2, load_avg_2_1);
+        int tmp = fp_mult(frac, t->recent_cpu);
+        int result = add_complex(tmp, t->nice);
+
+        if ((result >> 31) == (-1) >> 31)
             result = 0;
+
         t->recent_cpu = result;
     }
 }
@@ -830,13 +836,13 @@ void mlfqs_recent_cpu(struct thread *t)
 /* load_avg */
 void mlfqs_load_avg(void)
 {
-    int a = div_fp(int_to_fp(59), int_to_fp(60));
-    int b = div_fp(int_to_fp(1), int_to_fp(60));
-    int load_avg_2 = mult_fp(a, load_avg);
+    int a = fp_div(int_to_fp(59), int_to_fp(60));
+    int b = fp_div(int_to_fp(1), int_to_fp(60));
+    int load_avg2 = fp_mult(a, load_avg);
     int ready_thread = (int)list_size(&ready_list);
     ready_thread = (thread_current() == idle_thread) ? ready_thread : ready_thread + 1;
-    int ready_thread_2 = mult_mixed(b, ready_thread);
-    int result = add_fp(load_avg_2, ready_thread_2);
+    int ready_thread2 = mult_complex(b, ready_thread);
+    int result = fp_add(load_avg2, ready_thread2);
     load_avg = result;
 }
 
@@ -846,7 +852,7 @@ void mlfqs_increment(void)
     if (thread_current() != idle_thread) 
 	{
         int cur_recent_cpu = thread_current()->recent_cpu;
-        thread_current()->recent_cpu = add_mixed(cur_recent_cpu, 1);
+        thread_current()->recent_cpu = add_complex(cur_recent_cpu, 1);
     }
 }
 
