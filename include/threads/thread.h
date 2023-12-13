@@ -9,6 +9,9 @@
 #include "vm/vm.h"
 #endif
 
+// * USERPROG 추가
+#include "include/threads/synch.h"
+
 /* States in a thread's life cycle. */
 enum thread_status
 {
@@ -92,8 +95,6 @@ struct thread
 	enum thread_status status; /* Thread state. */
 	char name[16];			   /* Name (for debugging purposes). */
 	int priority;			   /* Priority. */
-	
-	/* alarm clock */
 	int64_t time_to_wakeup;	   /* Time to wake up (for sleeping thread) */
 
 	/* Shared between thread.c and synch.c. */
@@ -110,6 +111,20 @@ struct thread
 	int recent_cpu;
 	struct list_elem allelem; /* 모든 thread의 recent_cpu와 priority값 재계산하기 위함 */
 
+	struct thread* parent_t; /* 부모 프로세스의 디스크립터 */
+	struct list children_list; /* 자식 리스트 */
+	struct list_elem child_elem; /* 자식 리스트 element */
+
+	struct semaphore sema_exit;/* exit 세마포어 */
+	struct semaphore sema_wait;/* load 세마포어 */
+	struct semaphore sema_fork; 
+	int exit_status;/* exit 호출 시 종료 status */
+
+	/* file descriptor */
+	struct file **fdt;
+	int next_fd;
+	struct file *running_file;
+	
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
 	uint64_t *pml4; /* Page map level 4 */
@@ -121,6 +136,7 @@ struct thread
 
 	/* Owned by thread.c. */
 	struct intr_frame tf; /* Information for switching */
+	struct intr_frame ptf;
 	unsigned magic;		  /* Detects stack overflow. */
 };
 
@@ -158,23 +174,21 @@ int thread_get_load_avg(void);
 
 void do_iret(struct intr_frame *tf);
 
-// ----------create---------- //
-
-void thread_preemption(void);
+/* 현재 수행중인 스레드와 가장 높은 우선순위의 스레드의 우선순위를 비교하여 스케줄링 */
+void test_max_priority(void);
 
 /* priority scheduling */
-bool compare_thread_priority(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
-bool compare_donation_priority(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
+bool cmp_priority(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
+bool cmp_donation_priority(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
 void donate_priority(void);
 void remove_with_lock(struct lock *lock);
 void refresh_priority(void);
 
-/* mlfqs */
+/* MLFQS */
 void mlfqs_priority(struct thread *t);
 void mlfqs_recent_cpu(struct thread *t);
 void mlfqs_load_avg(void);
 void mlfqs_increment(void);
 void mlfqs_recalc_priority(void);
 void mlfqs_recalc_recent_cpu(void);
-
 #endif /* threads/thread.h */

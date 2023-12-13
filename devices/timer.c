@@ -23,6 +23,7 @@ static int64_t ticks;
 /* [ sleep list에 있는 알람시간 중 가장 이른 알람시간 ]
    가장 이른 알람시간 ≤ 현재 ticks 이면, 깨울 스레드가 없다는 의미이다. */
 int64_t MIN_alarm_time = INT64_MAX;
+#define F (1 << 14) /* fixed point 1 */
 
 /* Number of loops per timer tick.
    Initialized by timer_calibrate(). */
@@ -98,6 +99,12 @@ timer_elapsed(int64_t then)
 void timer_sleep(int64_t ticks)
 {
 	thread_sleep(timer_ticks() + ticks);
+}
+
+/* 알람 시간이 다 되면 sleep -> ready로 상태를 바꿔준다. */
+void wakeup(struct thread *t)
+{
+	thread_unblock(t);
 }
 
 /* Suspends execution for approximately MS milliseconds. */

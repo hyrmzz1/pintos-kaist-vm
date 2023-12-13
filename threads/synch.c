@@ -68,7 +68,7 @@ void sema_down(struct semaphore *sema)
 	while (sema->value == 0)
 	{
 		/* waiters 리스트 삽입 시, 우선순위대로 삽입 */
-		list_insert_ordered(&sema->waiters, &thread_current()->elem, compare_thread_priority, NULL);
+		list_insert_ordered(&sema->waiters, &thread_current()->elem, cmp_priority, NULL);
 		thread_block();
 	}
 	sema->value--;
@@ -111,19 +111,15 @@ void sema_up(struct semaphore *sema)
 	ASSERT(sema != NULL);
 
 	old_level = intr_disable();
-
 	if (!list_empty(&sema->waiters))
 	{
-		/* 스레드가 waiters list에 있는 동안
-		   우선순위가 변경 되었을 경우를 고려하여
-		   waiters list를 우선순위로 정렬 한다. */
-		list_sort(&sema->waiters, compare_thread_priority, NULL);
+		list_sort(&sema->waiters, cmp_priority, NULL);
 		thread_unblock(list_entry(list_pop_front(&sema->waiters),
 								  struct thread, elem));
 	}
 	sema->value++;
 
-	thread_preemption();
+	test_max_priority();
 	intr_set_level(old_level);
 }
 
@@ -150,8 +146,7 @@ void sema_self_test(void)
 }
 
 /* Thread function used by sema_self_test(). */
-static void
-sema_test_helper(void *sema_)
+static void sema_test_helper(void *sema_)
 {
 	struct semaphore *sema = sema_;
 	int i;
@@ -199,27 +194,18 @@ void lock_acquire(struct lock *lock)
 	ASSERT(lock != NULL);
 	ASSERT(!intr_context());
 	ASSERT(!lock_held_by_current_thread(lock));
-	struct thread *cur_thread = thread_current();
+	struct thread *curr = thread_current();
 	
-	/* mlfqs 스케줄러 활성화시 priority donation 관련 코드 비활성화 
-	   !thread_mlfqs -> RR */
-	/* 해당 lock의 holder가 존재 한다면 */
-	/* 통과하면 수정해보기 */
 	if (lock->holder != NULL)
 	{
-		/* 현재 스레드의 wait_on_lock 변수에 획득 하기를 기다리는 lock의 주소를 저장 */
-		cur_thread->wait_on_lock = lock;
-		/* multiple donation 을 고려하기 위해 이전상태의 우선순위를 기억, 
-		   donation 을 받은 스레드의 thread 구조체를 list로 관리한다. */
-		list_insert_ordered(&lock->holder->donations, &cur_thread->donation_elem, compare_donation_priority, NULL);
-		/* priority donation 수행하기 위해 donate_priority() 함수 호출 */
+		curr->wait_on_lock = lock;
+		list_insert_ordered(&lock->holder->donations, &curr->donation_elem, cmp_donation_priority, NULL);
 		if (!thread_mlfqs)
 			donate_priority();
 	}
 	sema_down(&lock->semaphore);
-	cur_thread->wait_on_lock = NULL;
+	curr->wait_on_lock = NULL;
 
-	/* lock을 획득 한 후 lock holder 를 갱신한다. */
 	lock->holder = thread_current();
 }
 
@@ -253,13 +239,12 @@ void lock_release(struct lock *lock)
 	ASSERT(lock != NULL);
 	ASSERT(lock_held_by_current_thread(lock));
 
-	/* mlfqs 스케줄러 활성화시 priority donation 관련 코드 비활성화
-	   !thread_mlfqs -> RR */
+	lock->holder = NULL;
+
 	if (!thread_mlfqs){
 		remove_with_lock(lock);
 		refresh_priority();
 	}
-	lock->holder = NULL;
 	sema_up(&lock->semaphore);
 }
 
@@ -321,7 +306,7 @@ void cond_wait(struct condition *cond, struct lock *lock)
 
 	sema_init(&waiter.semaphore, 0);
 	/* condition variable의 waiters list에 우선순위 순서로 삽입 */
-	list_insert_ordered(&cond->waiters, &waiter.elem, compare_semaphore_priority, NULL);
+	list_insert_ordered(&cond->waiters, &waiter.elem, cmp_sem_priority, NULL);
 	lock_release(lock);
 	sema_down(&waiter.semaphore);
 	lock_acquire(lock);
@@ -344,7 +329,7 @@ void cond_signal(struct condition *cond, struct lock *lock UNUSED)
 	if (!list_empty(&cond->waiters))
 	{
 		/* condition variable의 waiters list를 우선순위로 재정렬 */
-		list_sort(&cond->waiters, compare_semaphore_priority, NULL);
+		list_sort(&cond->waiters, cmp_sem_priority, NULL);
 		sema_up(&list_entry(list_pop_front(&cond->waiters),
 							struct semaphore_elem, elem)
 					 ->semaphore);
@@ -366,14 +351,13 @@ void cond_broadcast(struct condition *cond, struct lock *lock)
 		cond_signal(cond, lock);
 }
 
-// ----------create---------- //
 
-bool compare_semaphore_priority(const struct list_elem *a, const struct list_elem *b, void *aux)
+bool cmp_sem_priority(const struct list_elem *a, const struct list_elem *b, void *aux)
 {
 	struct semaphore_elem *sa = list_entry(a, struct semaphore_elem, elem);
 	struct semaphore_elem *sb = list_entry(b, struct semaphore_elem, elem);
 
 	struct list_elem *ta = list_begin(&sa->semaphore.waiters);
 	struct list_elem *tb = list_begin(&sb->semaphore.waiters);
-	return compare_thread_priority(ta, tb, NULL);
+	return cmp_priority(ta, tb, NULL);
 }
