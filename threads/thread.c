@@ -231,10 +231,10 @@ tid_t thread_create(const char *name, int priority, thread_func *function, void 
 	sema_init(&t->sema_wait, 0); 
 	sema_init(&t->sema_fork, 0); 
 
-	/* 자식 리스트에 추가 */
+	/* children_list */
 	list_push_back(&thread_current()->children_list, &t->child_elem);
 
-	// * 파일 디스크립터 초기값 설정
+	/* fd init */
 	t->fdt = palloc_get_page(PAL_ZERO);
 	if (t->fdt == NULL)  return TID_ERROR;
 
@@ -345,7 +345,6 @@ void thread_yield(void)
 	struct thread *curr = thread_current();
 	enum intr_level old_level;
 
-	ASSERT(!intr_context());
 	ASSERT(!intr_context());
 
 	old_level = intr_disable();
@@ -475,8 +474,7 @@ kernel_thread(thread_func *function, void *aux)
 
 /* Does basic initialization of T as a blocked thread named
    NAME. */
-static void
-init_thread(struct thread *t, const char *name, int priority)
+static void init_thread(struct thread *t, const char *name, int priority)
 {
 	ASSERT(t != NULL);
 	ASSERT(PRI_MIN <= priority && priority <= PRI_MAX);
@@ -489,16 +487,16 @@ init_thread(struct thread *t, const char *name, int priority)
 	t->priority = priority;
 	t->magic = THREAD_MAGIC;
 
-	/* Priority donation관련 자료구조 초기화 */
+	/* priority */
 	t->init_priority = priority;
 	t->wait_on_lock = NULL;
 	list_init(&t->donations);
 
-	/* MLFQ 자료구조 초기화 */
+	/* mlfqs */
 	t->nice = NICE_DEFAULT;
 	t->recent_cpu = RECENT_CPU_DEFAULT;
 
-	/* USERPROG */
+	/* syscall */
 	list_init(&t->children_list);
 }
 
@@ -718,21 +716,21 @@ void thread_sleep(int64_t ticks)
 void thread_awake(int64_t ticks) 
 {
 	struct thread *sleep_thread;
-	struct list_elem *now = list_begin(&sleep_list);
+	struct list_elem *cur_thread = list_begin(&sleep_list);
 	int64_t new_MIN = INT64_MAX;
 
-	while (now != list_tail(&sleep_list))
+	while (cur_thread != list_tail(&sleep_list))
 	{
-		sleep_thread = list_entry(now, struct thread, elem);
+		sleep_thread = list_entry(cur_thread, struct thread, elem);
 
 		if (sleep_thread->time_to_wakeup <= ticks)
 		{
-			now = list_remove(&sleep_thread->elem);
+			cur_thread = list_remove(&sleep_thread->elem);
 			thread_unblock(sleep_thread);
 		}
 		else
 		{
-			now = list_next(now);
+			cur_thread = list_next(cur_thread);
 			if (new_MIN > sleep_thread->time_to_wakeup)
 				new_MIN = sleep_thread->time_to_wakeup;
 		}

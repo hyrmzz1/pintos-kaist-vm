@@ -1,18 +1,17 @@
 #ifndef USERPROG_SYSCALL_H
 #define USERPROG_SYSCALL_H
 
-// * USERPROG 추가
+/* syscall */
 #include <stdbool.h>
 #include "threads/thread.h"
 
+/* syscall */
 struct lock filesys_lock;
 
 void syscall_init (void);
 
-/* 추가 */
+/* syscall */
 void check_address(void *addr);
-
-/* syscall 추가 */
 void halt(void);
 void exit(int status);
 int fork (const char *thread_name);

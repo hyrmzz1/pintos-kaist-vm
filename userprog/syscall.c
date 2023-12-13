@@ -8,6 +8,7 @@
 #include "threads/flags.h"
 #include "intrinsic.h"
 
+/* syscall */
 #include "threads/palloc.h"
 #include "filesys/filesys.h"
 #include "filesys/file.h"
@@ -118,47 +119,49 @@ void exit(int status)
 	thread_exit();
 }
 
-int fork (const char *thread_name) 
+int fork(const char *thread_name) 
 {
 	check_address(thread_name);
 	return process_fork(thread_name, &thread_current()->ptf);
 }
 
-int exec (const char *file_name) 
+int exec(const char *file_name) 
 {
 	check_address(file_name);
 
 	int file_size = strlen(file_name) + 1;
 	char *fn_copy = palloc_get_page(PAL_ZERO);
-	if (!fn_copy) {
+	if (!fn_copy) 
+	{
 		exit(-1);
 		return -1;
 	}
 	strlcpy(fn_copy, file_name, file_size);
-	if (process_exec(fn_copy) == -1) {
+	if (process_exec(fn_copy) == -1) 
+	{
 		exit(-1);
 		return -1;
 	}
 }
 
-int wait (tid_t pid) 
+int wait(tid_t pid) 
 {
   	return process_wait(pid);
 }
 
-bool create (const char *file, unsigned initial_size) 
+bool create(const char *file, unsigned initial_size) 
 {
 	check_address(file);
 	return filesys_create(file, initial_size);
 }
 
-bool remove (const char *file) 
+bool remove(const char *file) 
 {
 	check_address(file);
 	return filesys_remove(file);
 }
 
-int open (const char *file) 
+int open(const char *file) 
 {
 	check_address(file);
 	struct thread *cur = thread_current();
@@ -179,7 +182,7 @@ int open (const char *file)
 	return -1;
 }
 
-int filesize (int fd) 
+int filesize(int fd) 
 {
 	struct file *file = thread_current()->fdt[fd];
 	if (file)
@@ -187,7 +190,7 @@ int filesize (int fd)
 	return -1;
 }
 
-int read (int fd, void *buffer, unsigned size) 
+int read(int fd, void *buffer, unsigned size) 
 {
 	check_address(buffer);
 	if (fd == 1)
@@ -211,7 +214,7 @@ int read (int fd, void *buffer, unsigned size)
 	return -1;
 }
 
-int write (int fd UNUSED, const void *buffer, unsigned size) 
+int write(int fd UNUSED, const void *buffer, unsigned size) 
 {
 	check_address(buffer);
 
@@ -236,24 +239,25 @@ int write (int fd UNUSED, const void *buffer, unsigned size)
 	}
 }
 
-void seek (int fd, unsigned position) 
+void seek(int fd, unsigned position) 
 {
 	struct file *curfile = thread_current()->fdt[fd];
 	if (curfile)
 		file_seek(curfile, position);
 }
 
-unsigned tell (int fd) 
+unsigned tell(int fd) 
 {
 	struct file *curfile = thread_current()->fdt[fd];
 	if (curfile)
 		return file_tell(curfile);
 }
 
-void close (int fd) 
+void close(int fd) 
 {
 	struct file * file = thread_current()->fdt[fd];
-	if (file) {
+	if (file) 
+	{
 		lock_acquire(&filesys_lock);
 		thread_current()->fdt[fd] = NULL;
 		file_close(file);

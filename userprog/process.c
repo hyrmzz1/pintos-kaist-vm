@@ -93,8 +93,7 @@ tid_t process_fork(const char *name, struct intr_frame *if_ UNUSED)
 #ifndef VM
 /* Duplicate the parent's address space by passing this function to the
  * pml4_for_each. This is only for the project 2. */
-static bool
-duplicate_pte(uint64_t *pte, void *va, void *aux)
+static bool duplicate_pte(uint64_t *pte, void *va, void *aux)
 {
 	struct thread *cur_thread = thread_current();
 	struct thread *parent = (struct thread *)aux;
@@ -138,8 +137,7 @@ duplicate_pte(uint64_t *pte, void *va, void *aux)
  * Hint) parent->tf does not hold the userland context of the process.
  *       That is, you are required to pass second argument of process_fork to
  *       this function. */
-static void
-__do_fork(void *aux)
+static void __do_fork(void *aux)
 {
 	struct intr_frame if_;
 	struct thread *parent = (struct thread *)aux;
@@ -175,13 +173,9 @@ __do_fork(void *aux)
 	while (fd < 128)
 	{
 		if (parent->fdt[fd])
-		{
 			current->fdt[fd] = file_duplicate(parent->fdt[fd]);
-		}
 		else
-		{
 			current->fdt[fd] = NULL;
-		}
 		fd++;
 	}
 	current->next_fd = parent->next_fd;
