@@ -20,9 +20,8 @@
 /* Number of timer ticks since OS booted. */
 static int64_t ticks;
 
-/* [ sleep list에 있는 알람시간 중 가장 이른 알람시간 ]
-   가장 이른 알람시간 ≤ 현재 ticks 이면, 깨울 스레드가 없다는 의미이다. */
 int64_t MIN_alarm_time = INT64_MAX;
+
 #define F (1 << 14) /* fixed point 1 */
 
 /* Number of loops per timer tick.
@@ -95,16 +94,9 @@ timer_elapsed(int64_t then)
 	return timer_ticks() - then;
 }
 
-/* 알람시간 = 현재 흐른 ticks + 재울 ticks */
 void timer_sleep(int64_t ticks)
 {
 	thread_sleep(timer_ticks() + ticks);
-}
-
-/* 알람 시간이 다 되면 sleep -> ready로 상태를 바꿔준다. */
-void wakeup(struct thread *t)
-{
-	thread_unblock(t);
 }
 
 /* Suspends execution for approximately MS milliseconds. */
@@ -131,32 +123,26 @@ void timer_print_stats(void)
 	printf("Timer: %" PRId64 " ticks\n", timer_ticks());
 }
 
-/* [ Timer interrupt handler ]
-   알람시간 ≤ 현재 시간 이면, 깨워야 한다. */
-static void
-timer_interrupt(struct intr_frame *args UNUSED)
+static void timer_interrupt(struct intr_frame *args UNUSED)
 {
 	ticks++;
 	thread_tick();
-	/* mlfqs 스케줄러일 경우
-	   timer_interrupt 가 발생할때 마다 recuent_cpu 1증가, 
-	   1초마다 load_avg, recent_cpu, priority 재계산,
-	   매 4tick마다 priority 재계산 */
-	if (thread_mlfqs) {
+
+	if (thread_mlfqs) 
+	{
         mlfqs_increment();
         if (timer_ticks() % 4 == 0)
             mlfqs_recalc_priority();
 
-        if (timer_ticks() % 100 == 0) {
+        if (timer_ticks() % 100 == 0) 
+		{
             mlfqs_load_avg();
             mlfqs_recalc_recent_cpu();
         }
     }
 	
 	if (MIN_alarm_time <= ticks)
-	{
 		thread_awake(ticks);
-	}
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer

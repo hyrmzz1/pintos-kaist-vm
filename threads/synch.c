@@ -67,8 +67,7 @@ void sema_down(struct semaphore *sema)
 	old_level = intr_disable();
 	while (sema->value == 0)
 	{
-		/* waiters 리스트 삽입 시, 우선순위대로 삽입 */
-		list_insert_ordered(&sema->waiters, &thread_current()->elem, cmp_priority, NULL);
+		list_insert_ordered(&sema->waiters, &thread_current()->elem, compare_thread_priority, NULL);
 		thread_block();
 	}
 	sema->value--;
@@ -113,13 +112,12 @@ void sema_up(struct semaphore *sema)
 	old_level = intr_disable();
 	if (!list_empty(&sema->waiters))
 	{
-		list_sort(&sema->waiters, cmp_priority, NULL);
-		thread_unblock(list_entry(list_pop_front(&sema->waiters),
-								  struct thread, elem));
+		list_sort(&sema->waiters, compare_thread_priority, NULL);
+		thread_unblock(list_entry(list_pop_front(&sema->waiters), struct thread, elem));
 	}
 	sema->value++;
 
-	test_max_priority();
+	thread_preemption();
 	intr_set_level(old_level);
 }
 
@@ -199,7 +197,7 @@ void lock_acquire(struct lock *lock)
 	if (lock->holder != NULL)
 	{
 		curr->wait_on_lock = lock;
-		list_insert_ordered(&lock->holder->donations, &curr->donation_elem, cmp_donation_priority, NULL);
+		list_insert_ordered(&lock->holder->donations, &curr->donation_elem, compare_donation_priority, NULL);
 		if (!thread_mlfqs)
 			donate_priority();
 	}
@@ -241,7 +239,8 @@ void lock_release(struct lock *lock)
 
 	lock->holder = NULL;
 
-	if (!thread_mlfqs){
+	if (!thread_mlfqs)
+	{
 		remove_with_lock(lock);
 		refresh_priority();
 	}
@@ -305,8 +304,8 @@ void cond_wait(struct condition *cond, struct lock *lock)
 	ASSERT(lock_held_by_current_thread(lock));
 
 	sema_init(&waiter.semaphore, 0);
-	/* condition variable의 waiters list에 우선순위 순서로 삽입 */
-	list_insert_ordered(&cond->waiters, &waiter.elem, cmp_sem_priority, NULL);
+
+	list_insert_ordered(&cond->waiters, &waiter.elem, compare_semaphore_priority, NULL);
 	lock_release(lock);
 	sema_down(&waiter.semaphore);
 	lock_acquire(lock);
@@ -328,8 +327,7 @@ void cond_signal(struct condition *cond, struct lock *lock UNUSED)
 
 	if (!list_empty(&cond->waiters))
 	{
-		/* condition variable의 waiters list를 우선순위로 재정렬 */
-		list_sort(&cond->waiters, cmp_sem_priority, NULL);
+		list_sort(&cond->waiters, compare_semaphore_priority, NULL);
 		sema_up(&list_entry(list_pop_front(&cond->waiters),
 							struct semaphore_elem, elem)
 					 ->semaphore);
@@ -351,13 +349,14 @@ void cond_broadcast(struct condition *cond, struct lock *lock)
 		cond_signal(cond, lock);
 }
 
+// -----create----- //
 
-bool cmp_sem_priority(const struct list_elem *a, const struct list_elem *b, void *aux)
+bool compare_semaphore_priority(const struct list_elem *a, const struct list_elem *b, void *aux)
 {
 	struct semaphore_elem *sa = list_entry(a, struct semaphore_elem, elem);
 	struct semaphore_elem *sb = list_entry(b, struct semaphore_elem, elem);
 
 	struct list_elem *ta = list_begin(&sa->semaphore.waiters);
 	struct list_elem *tb = list_begin(&sb->semaphore.waiters);
-	return cmp_priority(ta, tb, NULL);
+	return compare_thread_priority(ta, tb, NULL);
 }
