@@ -1,0 +1,13 @@
+{
+    "configurations": [
+        {
+            "name": "VM 모드",
+            "defines": ["USERPROG", "VM"],  // 이 부분에 원하는 매크로를 추가
+            "includePath": [
+                "${workspaceFolder}/**"
+            ]
+            // 기타 다른 설정들...
+        }
+    ],
+    "version": 4
+}

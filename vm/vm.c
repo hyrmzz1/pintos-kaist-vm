@@ -3,6 +3,8 @@
 #include "threads/malloc.h"
 #include "vm/vm.h"
 #include "vm/inspect.h"
+#include "lib/kernel/hash.h"
+#include "threads/vaddr.h"
 
 /* Initializes the virtual memory subsystem by invoking each subsystem's
  * intialize codes. */
@@ -61,28 +63,47 @@ err:
 }
 
 /* Find VA from spt and return page. On error, return NULL. */
+/* 인자로 넘겨진 spt에서 가상주소 VA와 대응되는 페이지 구조체 찾아서 반환 */
 struct page *
 spt_find_page (struct supplemental_page_table *spt UNUSED, void *va UNUSED) {
 	struct page *page = NULL;
 	/* TODO: Fill this function. */
+	/* pg_round_down()으로 vaddr의 페이지 번호를 얻음 */
+	page = malloc(sizeof(page));	// page 사이즈(byte 단위)만큼 메모리 할당. hash_elem 인자로 사용하기 위해 만든 dummy page!
+	page->va = pg_round_down(va);	// va가 가리키는 페이지의 시작 주소 반환 (offset 0)
 
-	return page;
+	/* hash_find() 함수를 사용해서 hash_elem 구조체 얻음 */
+	struct hash_elem *e;	// ?? 왜 포인터로 선언하지 ?
+	e = hash_find (&spt->pages, &page->hash_elem);
+	free(page);	// hash_elem 인자로 사용했으니까 dummy page 할당 해제
+
+	/* hash_entry()로 해당 hash_elem의 vm_entry 구조체 리턴
+	   만약 존재하지 않는다면 NULL 리턴 */
+	if (!e)
+		return NULL;
+	else
+		return e;
 }
 
 /* Insert PAGE into spt with validation. */
+/* 인자로 주어진 spt에 페이지 구조체 삽입 */
 bool
 spt_insert_page (struct supplemental_page_table *spt UNUSED,
 		struct page *page UNUSED) {
-	int succ = false;
 	/* TODO: Fill this function. */
-
-	return succ;
+	/* hash_insert() 함수를 이용하여 vm_entry를 해시 테이블에 삽입 */
+	if (!hash_insert (&spt->pages, &page->hash_elem))	// 삽입 성공시 NULL 반환
+		return true;
+	else
+		return false;
 }
 
 void
 spt_remove_page (struct supplemental_page_table *spt, struct page *page) {
+	/* hash_delete() 함수를 이용하여 vm_entry를 해시 테이블에서 제거 */
+	hash_delete (&spt->pages, &page->hash_elem)
 	vm_dealloc_page (page);
-	return true;
+	// return true;
 }
 
 /* Get the struct frame, that will be evicted. */
@@ -172,8 +193,13 @@ vm_do_claim_page (struct page *page) {
 }
 
 /* Initialize new supplemental page table */
+/* userprog/process.c의 initd 함수로 새로운 프로세스가 시작하거나
+   process.c의 __do_fork로 자식 프로세스가 생성될 때 호출되는 함수 */
 void
 supplemental_page_table_init (struct supplemental_page_table *spt UNUSED) {
+	/* hash_init()으로 해시테이블 초기화
+	   인자로 해시 테이블과 vm_hash_func과 vm_less_func 사용 */
+	hash_init (&spt->pages, page_hash, page_less, NULL);
 }
 
 /* Copy supplemental page table from src to dst */

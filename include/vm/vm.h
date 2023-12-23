@@ -7,9 +7,9 @@ enum vm_type {
 	/* page not initialized */
 	VM_UNINIT = 0,
 	/* page not related to the file, aka anonymous page */
-	VM_ANON = 1,
+	VM_ANON = 1,	// 스왑영역으로부터 데이터를 로드
 	/* page that realated to the file */
-	VM_FILE = 2,
+	VM_FILE = 2,	// 매핑된 파일로부터 데이터를 로드
 	/* page that hold the page cache, for project 4 */
 	VM_PAGE_CACHE = 3,
 
@@ -42,14 +42,15 @@ struct thread;
  * DO NOT REMOVE/MODIFY PREDEFINED MEMBER OF THIS STRUCTURE. */
 struct page {
 	const struct page_operations *operations;
-	void *va;              /* Address in terms of user space */
+	void *va;              /* Address in terms of user space */ /* virtual address */
 	struct frame *frame;   /* Back reference for frame */
 
 	/* Your implementation */
-
+	struct hash_elem hash_elem;
+	
 	/* Per-type data are binded into the union.
 	 * Each function automatically detects the current union */
-	union {
+	union {	// 한 번에 멤버 중 하나의 값만을 가질 수 있음. (하나의 값만이 할당받은 메모리 사용)
 		struct uninit_page uninit;
 		struct anon_page anon;
 		struct file_page file;
@@ -85,6 +86,7 @@ struct page_operations {
  * We don't want to force you to obey any specific design for this struct.
  * All designs up to you for this. */
 struct supplemental_page_table {
+	struct hash pages;
 };
 
 #include "threads/thread.h"

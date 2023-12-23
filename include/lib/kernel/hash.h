@@ -39,6 +39,7 @@ struct hash_elem {
 	((STRUCT *) ((uint8_t *) &(HASH_ELEM)->list_elem        \
 		- offsetof (STRUCT, MEMBER.list_elem)))
 
+// hash_hash_func와 hash_less_func는 함수가 아니고, 선언해야하는 형식 알려주는 지침같은 것.
 /* Computes and returns the hash value for hash element E, given
  * auxiliary data AUX. */
 typedef uint64_t hash_hash_func (const struct hash_elem *e, void *aux);

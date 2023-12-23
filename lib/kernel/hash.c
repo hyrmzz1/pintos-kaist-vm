@@ -19,8 +19,14 @@ static void insert_elem (struct hash *, struct list *, struct hash_elem *);
 static void remove_elem (struct hash *, struct hash_elem *);
 static void rehash (struct hash *);
 
+unsigned page_hash (const struct hash_elem *p_, void *aux UNUSED);
+bool page_less (const struct hash_elem *a_, const struct hash_elem *b_, void *aux UNUSED);
+
 /* Initializes hash table H to compute hash values using HASH and
    compare hash elements using LESS, given auxiliary data AUX. */
+/* hash: 초기화할 hash table
+   hash_hash_func: 해시값 구해주는 함수(hash function)의 포인터
+   hash_less_func: hash elem들의 크기 비교해주는 함수의 포인터 => hash_find()에서 사용 */
 bool
 hash_init (struct hash *h,
 		hash_hash_func *hash, hash_less_func *less, void *aux) {
@@ -36,6 +42,23 @@ hash_init (struct hash *h,
 		return true;
 	} else
 		return false;
+}
+
+/* Returns a hash value for page p. */
+unsigned
+page_hash (const struct hash_elem *p_, void *aux UNUSED) {
+	const struct page *p = hash_entry (p_, struct page, hash_elem);
+	return hash_bytes (&p->addr, sizeof p->addr);
+}
+
+/* Returns true if page a precedes page b. */
+bool
+page_less (const struct hash_elem *a_,
+           const struct hash_elem *b_, void *aux UNUSED) {
+	const struct page *a = hash_entry (a_, struct page, hash_elem);
+	const struct page *b = hash_entry (b_, struct page, hash_elem);
+
+	return a->addr < b->addr;
 }
 
 /* Removes all the elements from H.
@@ -68,6 +91,7 @@ hash_clear (struct hash *h, hash_action_func *destructor) {
 }
 
 /* Destroys hash table H.
+   hash_action_func: hash bucket(elem 저장 위치)의 entry 삭제해주는 함수.
 
    If DESTRUCTOR is non-null, then it is first called for each
    element in the hash.  DESTRUCTOR may, if appropriate,
@@ -84,10 +108,13 @@ hash_destroy (struct hash *h, hash_action_func *destructor) {
 	free (h->buckets);
 }
 
-/* Inserts NEW into hash table H and returns a null pointer, if
+/* Inserts NEW(elem) into hash table H and returns a null pointer, if
    no equal element is already in the table.
    If an equal element is already in the table, returns it
    without inserting NEW. */
+/* If none is found, inserts element into hash and returns a null pointer.
+   If the table already contains an element equal to element, it is returned without modifying hash.
+*/
 struct hash_elem *
 hash_insert (struct hash *h, struct hash_elem *new) {
 	struct list *bucket = find_bucket (h, new);
@@ -117,20 +144,22 @@ hash_replace (struct hash *h, struct hash_elem *new) {
 	return old;
 }
 
-/* Finds and returns an element equal to E in hash table H, or a
+/* Finds and returns an element equal to E(elem) in hash table H, or a
    null pointer if no equal element exists in the table. */
 struct hash_elem *
 hash_find (struct hash *h, struct hash_elem *e) {
 	return find_elem (h, find_bucket (h, e), e);
 }
 
-/* Finds, removes, and returns an element equal to E in hash
+/* Finds, removes, and returns an element equal to E(elem) in hash
    table H.  Returns a null pointer if no equal element existed
    in the table.
 
    If the elements of the hash table are dynamically allocated,
    or own resources that are, then it is the caller's
    responsibility to deallocate them. */
+/* If one is found, it is removed from hash and returned. 
+   Otherwise, a null pointer is returned and hash is unchanged. */
 struct hash_elem *
 hash_delete (struct hash *h, struct hash_elem *e) {
 	struct hash_elem *found = find_elem (h, find_bucket (h, e), e);

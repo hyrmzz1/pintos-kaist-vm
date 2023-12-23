@@ -124,7 +124,7 @@ struct thread
 	struct file **fdt;
 	int next_fd;
 	struct file *running_file;
-	
+
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
 	uint64_t *pml4; /* Page map level 4 */
@@ -138,6 +138,9 @@ struct thread
 	struct intr_frame tf; /* Information for switching */
 	struct intr_frame ptf;
 	unsigned magic;		  /* Detects stack overflow. */
+
+	/* vm */
+	struct hash vm;	/* thread가 가진 가상 주소 공간 관리하는 hash table */	
 };
 
 /* If false (default), use round-robin scheduler.

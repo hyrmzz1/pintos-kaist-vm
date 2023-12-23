@@ -15,7 +15,11 @@
         "init.h": "c",
         "flags.h": "c",
         "filesys.h": "c",
-        "file.h": "c"
+        "file.h": "c",
+        "vm.h": "c",
+        "hash.h": "c",
+        "malloc.h": "c",
+        "inspect.h": "c"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }
