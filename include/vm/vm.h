@@ -47,7 +47,8 @@ struct page {
 
 	/* Your implementation */
 	struct hash_elem hash_elem;
-	
+	bool writable;
+
 	/* Per-type data are binded into the union.
 	 * Each function automatically detects the current union */
 	union {	// 한 번에 멤버 중 하나의 값만을 가질 수 있음. (하나의 값만이 할당받은 메모리 사용)
@@ -62,8 +63,9 @@ struct page {
 
 /* The representation of "frame" */
 struct frame {
-	void *kva;
-	struct page *page;
+	void *kva;	// 커널 가상 주소
+	struct page *page;	// 페이지 구조체
+	// struct list_elem frame_elem;
 };
 
 /* The function table for page operations.

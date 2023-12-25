@@ -5,6 +5,7 @@
 #include "vm/inspect.h"
 #include "lib/kernel/hash.h"
 #include "threads/vaddr.h"
+#include "userprog/process.h"
 
 /* Initializes the virtual memory subsystem by invoking each subsystem's
  * intialize codes. */
@@ -129,14 +130,26 @@ vm_evict_frame (void) {
  * and return it. This always return valid address. That is, if the user pool
  * memory is full, this function evicts the frame to get the available memory
  * space.*/
+/* 모든 유저 영역 페이지들은 이 함수를 통해 할당해야함. */
 static struct frame *
 vm_get_frame (void) {
 	struct frame *frame = NULL;
 	/* TODO: Fill this function. */
+	frame->kva = palloc_get_page(PAL_USER);	// 메모리 풀에서 새로운 물리 메모리 페이지를 가져옴
+
+	if (frame->kva == NULL)	// 페이지 할당 실패
+		PANIC("todo");
+	
+	/* 유저 메모리 풀에서 페이지 성공적으로 가져오면 */
+	frame = malloc(sizeof(frame));	// 프레임 할당
+
+	// 프레임 구조체 멤버 초기화
+	frame->kva;	// 초기화 어떻게 해야하지 ???;;
+	frame->page = NULL;
 
 	ASSERT (frame != NULL);
 	ASSERT (frame->page == NULL);
-	return frame;
+	return frame;	// 해당 프레임 반환
 }
 
 /* Growing the stack. */
@@ -170,26 +183,34 @@ vm_dealloc_page (struct page *page) {
 }
 
 /* Claim the page that allocate on VA. */
+/* va에 페이지 할당하고 해당 페이지에 프레임 할당 */
 bool
 vm_claim_page (void *va UNUSED) {
-	struct page *page = NULL;
+	struct page *page = NULL;	// 한 페이지 얻음
 	/* TODO: Fill this function */
-
-	return vm_do_claim_page (page);
+	page = spt_find_page(&thread_current()->spt, va);	// va와 대응되는 페이지 구조체 반환
+	
+	if (page == NULL)	// spt_find_page(): va에 대응하는 페이지 구조체가 존재하지 않으면 NULL 반환
+		return false;
+	return vm_do_claim_page (page);	// 해당 페이지를 인자로 갖는 vm_do_claim_page() 호출
 }
 
 /* Claim the PAGE and set up the mmu. */
+/* page에 물리 메모리 프레임 할당 */
 static bool
 vm_do_claim_page (struct page *page) {
-	struct frame *frame = vm_get_frame ();
+	struct frame *frame = vm_get_frame ();	// 프레임 하나 얻음
 
 	/* Set links */
 	frame->page = page;
 	page->frame = frame;
 
 	/* TODO: Insert page table entry to map page's VA to frame's PA. */
-
-	return swap_in (page, frame->kva);
+	/* MMU 세팅 (페이지 테이블에 가상 주소와 물리 주소 매핑한 정보 추가)*/
+	if (install_page(page->va, frame->kva, page->writable))
+		return swap_in (page, frame->kva);	// 연산 성공
+	else
+		return false;	// 연산 실패
 }
 
 /* Initialize new supplemental page table */
