@@ -74,7 +74,7 @@ spt_find_page (struct supplemental_page_table *spt UNUSED, void *va UNUSED) {
 	page->va = pg_round_down(va);	// va가 가리키는 페이지의 시작 주소 반환 (offset 0)
 
 	/* hash_find() 함수를 사용해서 hash_elem 구조체 얻음 */
-	struct hash_elem *e;	// ?? 왜 포인터로 선언하지 ?
+	struct hash_elem *e;	// hash_find()가 hash_elem에 대한 포인터 반환하기 때문에 e는 포인터로 선언되어야 함.
 	e = hash_find (&spt->pages, &page->hash_elem);
 	free(page);	// hash_elem 인자로 사용했으니까 dummy page 할당 해제
 
@@ -135,16 +135,18 @@ static struct frame *
 vm_get_frame (void) {
 	struct frame *frame = NULL;
 	/* TODO: Fill this function. */
-	frame->kva = palloc_get_page(PAL_USER);	// 메모리 풀에서 새로운 물리 메모리 페이지를 가져옴
+	void *kva = palloc_get_page(PAL_USER);	// 메모리 풀에서 새로운 물리 메모리 페이지를 가져옴
 
-	if (frame->kva == NULL)	// 페이지 할당 실패
+	if (kva == NULL)	// 페이지 할당 실패
 		PANIC("todo");
 	
 	/* 유저 메모리 풀에서 페이지 성공적으로 가져오면 */
-	frame = malloc(sizeof(frame));	// 프레임 할당
+	frame = malloc(sizeof(struct frame));	// 구조체 프레임 크기에 맞게 메모리 할당
+	// frame = malloc(sizeof(*frame));	// 이렇게 작성해도 됨. 
+	// frame = malloc(sizeof(frame));	// 이건 포인터의 크기에 따라 메모리 할당되므로 X
 
 	// 프레임 구조체 멤버 초기화
-	frame->kva;	// 초기화 어떻게 해야하지 ???;;
+	frame->kva = kva;
 	frame->page = NULL;
 
 	ASSERT (frame != NULL);
@@ -163,6 +165,7 @@ vm_handle_wp (struct page *page UNUSED) {
 }
 
 /* Return true on success */
+/* page fault 발생시 제어권 얻음 */
 bool
 vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
 		bool user UNUSED, bool write UNUSED, bool not_present UNUSED) {
@@ -170,6 +173,13 @@ vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
 	struct page *page = NULL;
 	/* TODO: Validate the fault */
 	/* TODO: Your code goes here */
+	// 유효한 page fault인지 검사
+	// 유효하지 않은 페이지에 접근한 page fault라면? (매핑되지 않은 페이지에 접근했다면) -> page fault 맞다
+
+	// 유효하지 않은 페이지에 접근한 page fault가 아니라면? (= bogus fault. 물리 메모리와 매핑은 되어있지만 콘텐츠 로드 안되어있다면)
+	// 페이지에서 콘텐츠 로드하고 유저프로그램에게 제어권 반환
+	// vm_alloc_page_with_initializer() 구현, 함수에서 세팅해 놓은 초기화 함수 호출, 이 함수를 인자로 갖는 uninit_new 함수 호출
+	// lazy_load_segment() 구현
 
 	return vm_do_claim_page (page);
 }
